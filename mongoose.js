@@ -5,6 +5,6 @@ const url = 'mongodb://localhost:27017/TodoApp';
 mongoose.Promise = global.Promise;
 
 //mongoose doesn't require the same callback function as mongo's default connect
-mongoose.connect(url);
+mongoose.connect(process.env.MONGODB_UI || url);
 
 module.exports = {mongoose};
