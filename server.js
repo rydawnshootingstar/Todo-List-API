@@ -1,5 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const _ = require('lodash');
+const {ObjectID} = require('mongodb');
 
 var {mongoose} = require('./mongoose');
 var {Todo} = require('./models/todo');
@@ -62,6 +64,34 @@ app.delete('/todos/:id', (req, res)=> {
    });
 });
 
+app.patch('/todos/:id', (req, res)=> {
+   var id = req.params.id;
+   //pulls off things from an object and puts them into an array
+   var body = _.pick(req.body, ['text', 'completed']);
+
+   if(!ObjectID.isValid(id)){
+       return res.status(400).send();
+   }
+
+   if(_.isBoolean(body.completed)&&body.completed){
+       body.completedAt = new Date().getTime();
+   }else {
+       body.completed = false;
+       body.completedAt = null;
+   }
+
+   //we have to use mongo db operators as our set object
+   Todo.findByIdAndUpdate(id, {$set: body},{new: true}).then((todo)=> {
+       if(!todo){
+           return res.status(404).send();
+       }
+       res.status(200).send({todo});
+
+   }).catch((error)=> {
+       console.log(error);
+       res.status(400).send();
+   })
+});
 
 
 app.listen(port, () => {
