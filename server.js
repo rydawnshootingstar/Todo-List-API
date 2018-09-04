@@ -49,10 +49,23 @@ app.get('/todos/:id', (req, res)=> {
     })
 });
 
+//delete route
+app.delete('/todos/:id', (req, res)=> {
+   Todo.findByIdAndDelete(req.params.id).then((todo)=> {
+      if(!todo){
+          return res.status(404).send();
+      }
+      res.status(200).send({todo});
+   }, (error)=> {
+       console.log(error);
+       res.status(404).send();
+   });
+});
+
 
 
 app.listen(port, () => {
-    console.log('started on'+ port);
+    console.log('started on '+ port);
 });
 
 module.exports = {app};
