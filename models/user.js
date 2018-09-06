@@ -46,6 +46,32 @@ UserSchema.methods.generateAuthToken = function () {
     });
 };
 
+//statics is how we make a model method rather than an instance method
+UserSchema.statics.findByToken = function (token){
+    //model becomes the this rather than the document
+    var User = this;
+    var decoded;
+
+    try {
+       decoded = jwt.verify(token, 'opensaysme');
+    }catch (e){
+        //always reject the promise so that we don't return
+        // return new Promise((resolve, reject)=> {
+        //    reject();
+        // });
+        //short way
+        return Promise.reject();
+    }
+
+    //return the promise in order to chain
+    return User.findOne({
+       _id: decoded._id,
+        //nested object requires quotes for dot operation
+       'tokens.token': token,
+       'tokens.access': 'auth'
+    });
+};
+
 // var User = mongoose.model('User', {
 //     email: {type: String, required: true, trim: true, minlength: 5, unique: true,
 //         validate: {

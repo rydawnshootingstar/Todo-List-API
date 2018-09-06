@@ -7,6 +7,7 @@ require('./config/config');
 var {mongoose} = require('./mongoose');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
+var {authenticate} = require('./middleware/authenticate');
 
 //const url = 'mongodb://localhost:27017/TodoApp';
 
@@ -110,6 +111,12 @@ app.post('/users', (req, res)=> {
         // }
         res.status(400).send(error.message);
     });
+});
+
+//private route with middleware
+app.get('/users/me', authenticate, (req, res)=> {
+    //remember not to send token
+    res.send(req.user);
 });
 
 
