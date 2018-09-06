@@ -94,6 +94,24 @@ app.patch('/todos/:id', (req, res)=> {
    })
 });
 
+app.post('/users', (req, res)=> {
+    var body = _.pick(req.body, ['email', 'password']);
+    var user = new User(body);
+
+    user.save().then(()=> {
+        return user.generateAuthToken();
+    }).then((token)=> {
+        //x headers are "custom" headers
+        res.header('x-auth', token).send(user);
+    }).catch ((error)=> {
+        console.log('error: ',error.message);
+        // if(error.message.contains('password')){
+        //     res.status(400).send('password must be 6 or more characters long')
+        // }
+        res.status(400).send(error.message);
+    });
+});
+
 
 app.listen(port, () => {
     console.log('started on '+ port);
