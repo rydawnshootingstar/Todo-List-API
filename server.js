@@ -30,6 +30,7 @@ app.post('/todos', (req, res)=> {
     });
 });
 
+//get list of all todos
 app.get('/todos', (req, res)=> {
    Todo.find().then((todos)=> {
        res.send({
@@ -41,6 +42,7 @@ app.get('/todos', (req, res)=> {
    })
 });
 
+//get a todo
 //URL variable and how to access it ***IMPORTANTE***
 app.get('/todos/:id', (req, res)=> {
     Todo.find({_id: req.params.id}).then((todo)=> {
@@ -54,7 +56,7 @@ app.get('/todos/:id', (req, res)=> {
     })
 });
 
-//delete route
+//delete a todo
 app.delete('/todos/:id', (req, res)=> {
    Todo.findByIdAndDelete(req.params.id).then((todo)=> {
       if(!todo){
@@ -67,6 +69,7 @@ app.delete('/todos/:id', (req, res)=> {
    });
 });
 
+//edit a todo
 app.patch('/todos/:id', (req, res)=> {
    var id = req.params.id;
    //pulls off things from an object
@@ -95,6 +98,7 @@ app.patch('/todos/:id', (req, res)=> {
    })
 });
 
+//creates a new user
 app.post('/users', (req, res)=> {
     var body = _.pick(req.body, ['email', 'password']);
     var user = new User(body);
@@ -119,6 +123,23 @@ app.get('/users/me', authenticate, (req, res)=> {
     res.send(req.user);
 });
 
+//log in as a user with json body email and password
+app.post('/users/login', (req,res)=> {
+    var creds = _.pick(req.body, ['email', 'password']);
+
+    //success case
+    User.findByCredentials(creds.email, creds.password).then((user)=> {
+        return user.generateAuthToken().then((token)=> {
+            //set header just like when a new user was created
+            res.header('x-auth', token).send(user);
+        });
+    })//fail case
+        .catch((e)=> {
+        console.log(e);
+        res.status(400).send();
+    });
+
+});
 
 app.listen(port, () => {
     console.log('started on '+ port);

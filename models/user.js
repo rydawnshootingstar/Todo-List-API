@@ -73,6 +73,30 @@ UserSchema.statics.findByToken = function (token){
     });
 };
 
+UserSchema.statics.findByCredentials = function (email, password){
+    var User = this;
+
+    //return because we're chaining
+    return User.findOne({'email': email}).then((user)=> {
+       if(!user) {
+           //reject promise from server.js
+           return Promise.reject();
+       }
+
+       //making this a promise is the best practice for asynchronous code
+       return new Promise((resolve, reject)=> {
+          bcrypt.compare(password, user.password, (err, res) => {
+              if(res){
+                  resolve(user);
+              }else {
+                  reject();
+              }
+          });
+       });
+    });
+};
+
+
 UserSchema.pre('save', function (next) {
     var user = this;
 
