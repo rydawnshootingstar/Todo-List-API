@@ -38,13 +38,25 @@ UserSchema.methods.toJSON = function () {
 UserSchema.methods.generateAuthToken = function () {
     var user = this;
     var access = 'auth';
-    var token = jwt.sign({_id: user._id.toString(), access}, 'opensaysme').toString();
+    var token = jwt.sign({_id: user._id.toString(), access}, process.env.JWT_SECRET).toString();
 
     user.tokens.push({access, token});
 
     return user.save().then(()=> {
        return token;
     });
+};
+
+UserSchema.methods.removeToken = function (token){
+    var user = this;
+    //pull removes not just the property of token but the entire object associated with it, which is an array.
+    return user.update({
+            $pull:
+                {
+                    tokens: {token}
+                }
+            }
+    );
 };
 
 //statics is how we make a model method rather than an instance method
@@ -54,7 +66,7 @@ UserSchema.statics.findByToken = function (token){
     var decoded;
 
     try {
-       decoded = jwt.verify(token, 'opensaysme');
+       decoded = jwt.verify(token, process.env.JWT_SECRET);
     }catch (e){
         //always reject the promise so that we don't return
         // return new Promise((resolve, reject)=> {

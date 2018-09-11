@@ -11,7 +11,6 @@ var {authenticate} = require('./middleware/authenticate');
 
 //const url = 'mongodb://localhost:27017/TodoApp';
 
-
 var app = express();
 //set up our app with the body parser json middleware
 app.use(bodyParser.json());
@@ -19,8 +18,9 @@ app.use(bodyParser.json());
 const port = process.env.PORT; // || 3000;
 
 //route for resource creation. this is for a new document of todo type
-app.post('/todos', (req, res)=> {
-    var todo = new Todo({text: req.body.text});
+//authenticate and the inclusion of the _creator param makes it private
+app.post('/todos', authenticate, (req, res)=> {
+    var todo = new Todo({text: req.body.text, _creator: req.user._id});
     todo.save().then((doc)=> {
         console.log('saved ',doc);
         res.status(200).send({"added": "true"});
@@ -30,9 +30,9 @@ app.post('/todos', (req, res)=> {
     });
 });
 
-//get list of all todos
-app.get('/todos', (req, res)=> {
-   Todo.find().then((todos)=> {
+//get list of all todos make by the logged in user
+app.get('/todos', authenticate, (req, res)=> {
+   Todo.find({_creator: req.user._id}).then((todos)=> {
        res.send({
            todos
        });
@@ -44,8 +44,8 @@ app.get('/todos', (req, res)=> {
 
 //get a todo
 //URL variable and how to access it ***IMPORTANTE***
-app.get('/todos/:id', (req, res)=> {
-    Todo.find({_id: req.params.id}).then((todo)=> {
+app.get('/todos/:id', authenticate,(req, res)=> {
+    Todo.findOne({_id: req.params.id, _creator: req.user._id}).then((todo)=> {
         if(!todo){
             return res.status(404).send();
         }
@@ -57,8 +57,8 @@ app.get('/todos/:id', (req, res)=> {
 });
 
 //delete a todo
-app.delete('/todos/:id', (req, res)=> {
-   Todo.findByIdAndDelete(req.params.id).then((todo)=> {
+app.delete('/todos/:id',authenticate,(req, res)=> {
+   Todo.findOneAndDelete({_id: req.params.id, _creator: req.user._id}).then((todo)=> {
       if(!todo){
           return res.status(404).send();
       }
@@ -70,8 +70,8 @@ app.delete('/todos/:id', (req, res)=> {
 });
 
 //edit a todo
-app.patch('/todos/:id', (req, res)=> {
-   var id = req.params.id;
+app.patch('/todos/:id', authenticate,(req, res)=> {
+   var id = req.params.id.toString();
    //pulls off things from an object
    var body = _.pick(req.body, ['text', 'completed']);
 
@@ -86,7 +86,7 @@ app.patch('/todos/:id', (req, res)=> {
        body.completedAt = null;
    }
    //we have to use mongo db operators as our set object
-   Todo.findByIdAndUpdate(id, {$set: body},{new: true}).then((todo)=> {
+   Todo.findOneAndUpdate({_id: id, _creator: req.user._id}, {$set: body},{new: true}).then((todo)=> {
        if(!todo){
            return res.status(404).send();
        }
@@ -139,6 +139,15 @@ app.post('/users/login', (req,res)=> {
         res.status(400).send();
     });
 
+});
+
+//logs a user out by deleting the token it has
+app.delete('/users/logout', authenticate,(req, res)=> {
+    req.user.removeToken(req.token).then(()=> {
+        res.status(200).send();
+    }, () => {
+        res.status(400).send();
+    });
 });
 
 app.listen(port, () => {
